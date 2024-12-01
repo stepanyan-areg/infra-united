@@ -1,0 +1,14 @@
+fullnameOverride: ${release_name}
+serviceAccount:
+  create: true
+  name: ${sa_name}
+policy: sync
+
+tolerations:
+  - key: "workload-type"
+    operator: "Equal"
+    value: "infra"
+    effect: "NoSchedule"
+nodeSelector:
+  karpenter.sh/nodepool: infra
+

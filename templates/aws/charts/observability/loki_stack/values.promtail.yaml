@@ -1,0 +1,10 @@
+config:
+  logLevel: warn
+  serverPort: 3101
+  clients:
+    - url: http://loki:${loki_service_port}/loki/api/v1/push
+      external_labels:
+        host: ${cluster_name}
+
+tolerations:
+  - operator: Exists

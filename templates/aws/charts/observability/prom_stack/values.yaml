@@ -1,0 +1,214 @@
+prometheus:
+  ingress:
+    enabled: ${ingress_enabled}
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/group.name: ${ingress_group_name}
+      alb.ingress.kubernetes.io/target-type: "ip"
+      alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+      alb.ingress.kubernetes.io/healthcheck-path: /-/healthy
+      alb.ingress.kubernetes.io/healthcheck-port: '9090'
+      alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    hosts:
+      - prometheus.${domain}
+    path: /
+    pathType: Prefix
+  prometheusSpec:
+    retention: 30d
+    walCompression: true
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: ${prometheus_server_volume_size}
+%{ if has_dedicated_infra_nodes }
+    nodeSelector:
+      topology.kubernetes.io/zone: us-east-1a
+      role: data
+    # tolerations:
+    #   - key: CriticalAddonsOnly
+    #     operator: Exists
+%{ endif }
+    resources:
+      requests:
+        memory: 3Gi
+        cpu: 1
+    externalUrl: https://prometheus.${domain}
+    logFormat: json
+
+grafana:
+%{ if grafana_sso_enabled ~}
+  adminPassword: grafana
+%{ endif ~}
+  plugins:
+    - grafana-worldmap-panel
+    - flant-statusmap-panel
+    - grafana-piechart-panel
+    - michaeldmoore-annunciator-panel
+    - goshposh-metaqueries-datasource
+    - marcusolsson-treemap-panel
+  auth:
+    anonymous:
+      enabled: "false"
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+  grafana.ini:
+    server:
+      root_url: https://grafana.${domain}
+%{ if grafana_sso_enabled ~}
+    auth:
+      disable_login_form: true
+      disable_signout_menu: false
+    auth.github:
+      enabled: true
+      allow_sign_up: true
+      client_id: $__env{CLIENT_ID}
+      client_secret: $__env{CLIENT_SECRET}
+      scopes: user:email,read:org
+      auth_url: https://github.com/login/oauth/authorize
+      token_url: https://github.com/login/oauth/access_token
+      api_url: https://api.github.com/user
+      role_attribute_path: contains(groups[*], '@${github_oauth_organization}/${grafana_admins_team}') && 'GrafanaAdmin' || 'Viewer'
+      allow_assign_grafana_admin: true
+      allowed_organizations: ${github_oauth_organization}
+      allowed_domains: ${github_oauth_domains}
+  envValueFrom:
+    CLIENT_ID:
+      secretKeyRef:
+        name: ${grafana_github_sso_secret}
+        key: clientId
+    CLIENT_SECRET:
+      secretKeyRef:
+        name: ${grafana_github_sso_secret}
+        key: clientSecret
+%{ endif ~}
+
+  ingress:
+    enabled: ${ingress_enabled}
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/group.name: ${ingress_group_name}
+      alb.ingress.kubernetes.io/target-type: "ip"
+      alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+      alb.ingress.kubernetes.io/healthcheck-path: /api/health
+      alb.ingress.kubernetes.io/healthcheck-port: '3000'
+      alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    hosts:
+      - grafana.${domain}
+    path: /
+    pathType: Prefix
+%{ if loki_stack_datasource_enabled ~}
+  datasources:
+    additional-datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:${loki_stack_service_port}
+        jsonData:
+          timeout: 60
+          maxLines: 1000
+%{ endif ~}
+%{ if has_dedicated_infra_nodes }
+  # tolerations:
+  #   - key: CriticalAddonsOnly
+  #     operator: Exists
+  nodeSelector:
+    role: data
+%{ endif }
+
+# Not monitoring etcd, kube-scheduler, or kube-controller-manager because it is managed by EKS
+defaultRules:
+  rules:
+    general: false
+    etcd: false
+    kubeScheduler: false
+    kubernetesApps: false
+    kubernetesSystem: false
+    kubeProxy: false
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+
+alertmanager:
+  ingress:
+    enabled: ${ingress_enabled}
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/group.name: ${ingress_group_name}
+      alb.ingress.kubernetes.io/target-type: "ip"
+    hosts:
+      - alertmanager.${domain}
+    path: /
+    pathType: Prefix
+  alertmanagerSpec:
+    retention: 168h
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: ${prometheus_alert_manager_volume_size}
+%{ if has_dedicated_infra_nodes }
+    nodeSelector:
+      topology.kubernetes.io/zone: us-east-1a
+      role: data
+    # tolerations:
+    #   - key: CriticalAddonsOnly
+    #     operator: Exists
+%{ endif }
+    resources:
+      requests:
+        memory: 400Mi
+        cpu: 100m
+    externalUrl: https://alertmanager.${domain}
+    logFormat: json
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by:
+      - namespace
+      group_interval: 1m
+      group_wait: 30s
+      repeat_interval: 10m
+      routes:
+      - matchers:
+        - alertname =~ "InfoInhibitor|Watchdog"
+
+%{ if has_dedicated_infra_nodes }
+kube-state-metrics:
+  # tolerations:
+  #   - key: CriticalAddonsOnly
+  #     operator: Exists
+  nodeSelector:
+    role: data
+%{ endif }
+
+%{ if has_dedicated_infra_nodes }
+prometheusOperator:
+  # tolerations:
+  #   - key: CriticalAddonsOnly
+  #     operator: Exists
+  nodeSelector:
+    role: data
+%{ endif }

@@ -1,0 +1,115 @@
+fullnameOverride: ${release_name}
+crds:
+  install: true
+%{ if sso_enabled ~}
+dex:
+  enabled: true
+%{ if argo_workflows_sso_enabled ~}
+  env:
+    - name: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: ${argocd_github_sso_secret}
+          key: clientSecret
+%{ endif ~}
+configs:
+  params:
+    server.insecure: true
+  cm:
+    create: true
+    url: "https://${hostname}"
+    exec.enabled: true
+    admin.enabled: "false"
+    dex.config: |
+      connectors:
+        - type: github
+          id: github
+          name: GitHub
+          config:
+            clientID: ${format("$%s:clientId", argocd_github_sso_secret)}
+            clientSecret: ${format("$%s:clientSecret", argocd_github_sso_secret)}
+            orgs:
+            - name: ${sso_org}
+%{ if argo_workflows_sso_enabled ~}
+      staticClients:
+      - id: ${format("$%s:clientId", argocd_github_sso_secret)}
+        name: Argo Workflow
+        redirectURIs:
+          - https://${argo_workflows_hostname}/oauth2/callback
+        secretEnv: ARGO_WORKFLOWS_SSO_CLIENT_SECRET
+%{ endif ~}
+  rbac:
+    create: true
+    policy.default: 'role:readonly'
+    policy.csv: |
+      p, role:org-admin, applications, *, */*, allow
+      p, role:org-admin, clusters, get, *, allow
+      p, role:org-admin, repositories, get, *, allow
+      p, role:org-admin, repositories, create, *, allow
+      p, role:org-admin, repositories, update, *, allow
+      p, role:org-admin, repositories, delete, *, allow
+      p, role:org-admin, projects, get, *, allow
+      p, role:org-admin, projects, create, *, allow
+      p, role:org-admin, projects, update, *, allow
+      p, role:org-admin, projects, delete, *, allow
+      p, role:org-admin, logs, get, *, allow
+      p, role:org-admin, exec, create, */*, allow
+      g, ${sso_org}:${github_admins_team}, role:org-admin
+    scopes: "[groups]"
+%{ endif ~}
+#redis-ha:
+#  enabled: true
+server:
+  serviceAccount:
+    create: true
+    name: ${sa_name}
+%{ if ecr_reg_enabled ~}
+    annotations:
+      eks.amazonaws.com/role-arn: ${ecr_role_arn}
+%{ endif ~}
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/group.name: ${ingress_group_name}
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+      alb.ingress.kubernetes.io/healthcheck-path: /
+      alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+      alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+      alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "10"
+      alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+      alb.ingress.kubernetes.io/success-codes: "200"
+      alb.ingress.kubernetes.io/target-type: ip
+      # alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+    hostname: ${hostname}
+  extraArgs:
+    - --insecure
+%{ if argo_rollouts_extension_enable ~}
+  extensions:
+    enabled: true
+    extensionList:
+      - name: rollout-extension
+        env:
+          - name: EXTENSION_URL
+            value: ${extension_url}
+%{ endif ~}
+repoServer:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+
+%{ if has_dedicated_infra_nodes }
+global:
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+  nodeSelector:
+    role: infra
+%{ endif }

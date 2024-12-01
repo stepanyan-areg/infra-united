@@ -1,0 +1,6 @@
+architecture: replication
+master:
+  resourcesPreset: small
+  disableCommands: []
+replica:
+  resourcesPreset: small

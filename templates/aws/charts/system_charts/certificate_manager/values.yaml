@@ -1,0 +1,37 @@
+installCRDs: true
+
+tolerations:
+  - key: "workload-type"
+    operator: "Equal"
+    value: "infra"
+    effect: "NoSchedule"
+nodeSelector:
+  karpenter.sh/nodepool: infra
+
+webhook:
+  timeoutSeconds: 30
+  tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra
+
+cainjector:
+  tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra
+
+startupapicheck:
+  tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra

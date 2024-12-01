@@ -1,0 +1,17 @@
+#'(?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*''
+- name: scanners-api
+- name: helm/scanners-api
+- name: scanners-discovery
+- name: helm/scanners-discovery
+- name: scanners-domains
+- name: helm/scanners-domains
+- name: scanners-malware
+- name: helm/scanners-malware
+- name: scanners-redcon
+- name: helm/scanners-redcon
+- name: scanners-technologies
+- name: helm/scanners-technologies
+- name: scanners-tamper
+- name: helm/scanners-tamper
+- name: scanners-port
+- name: helm/scanners-port

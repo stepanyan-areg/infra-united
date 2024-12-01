@@ -1,0 +1,14 @@
+server:
+  http_listen_port: ${loki_service_port}
+
+## Additional Loki container arguments, e.g. log level (debug, info, warn, error)
+extraArgs:
+  log.level: warn
+
+persistence:
+  enabled: true
+  size: ${loki_volume_size}
+
+nodeSelector:
+  topology.kubernetes.io/zone: us-east-1a
+  role: data

@@ -1,0 +1,10 @@
+architecture: replicaset
+replicaSetName: rs0
+replicaCount: 2
+persistence:
+  size: 1Gi
+auth:
+  databases:
+  - octopus
+  usernames:
+  - mongo

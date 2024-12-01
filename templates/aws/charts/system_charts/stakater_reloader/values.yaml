@@ -1,0 +1,9 @@
+reloader:
+  deployment:
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "infra"
+        effect: "NoSchedule"
+    nodeSelector:
+      karpenter.sh/nodepool: infra

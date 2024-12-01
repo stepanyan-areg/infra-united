@@ -1,0 +1,37 @@
+fullnameOverride: ${release_name}
+controller:
+  serviceAccount:
+    name: ${sa_name}
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: ${irsa_role}
+  tolerations:
+    - key: CriticalAddonsOnly
+      operator: Exists
+    - effect: NoExecute
+      operator: Exists
+      tolerationSeconds: 300
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra
+node:
+  tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra
+
+storageClasses:
+ - name: ebs-sc
+   annotations:
+     storageclass.kubernetes.io/is-default-class: "true"
+   volumeBindingMode: WaitForFirstConsumer
+   reclaimPolicy: Delete
+   allowVolumeExpansion: true
+   parameters:
+     encrypted: "true"

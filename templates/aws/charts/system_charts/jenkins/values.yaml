@@ -1,0 +1,30 @@
+fullnameOverride: ${release_name}
+
+controller:
+  adminUser: ${jenkins_admin_user}
+  adminPassword: ${jenkins_admin_password}
+  serviceType: ClusterIP
+  ingress:
+    enabled: true
+    apiVersion: networking.k8s.io/v1
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: "${jenkins_tls_cluster_issuer}"
+    hostName: ${jenkins_domain_name}
+    tls:
+      - hosts:
+          - ${jenkins_domain_name}
+        secretName: jenkins-tls
+  persistence:
+    enabled: true
+    storageClass: "${storage_class}"
+    size: "${storage_size}"
+  tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "infra"
+      effect: "NoSchedule"
+  nodeSelector:
+    karpenter.sh/nodepool: infra
+
+
