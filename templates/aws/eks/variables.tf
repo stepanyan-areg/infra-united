@@ -48,3 +48,7 @@ variable "tags" {
 #       principal_arn     = "arn:aws:iam::115525075501:user/dev"
 #   }))
 # }
+
+variable "sso_admin_role_arn" {
+  type = string
+}

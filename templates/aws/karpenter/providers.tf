@@ -18,10 +18,17 @@ terraform {
     }
   }
 }
+
+# Optional: Alias for ECR public (if you need it in a different region)
 provider "aws" {
   region = "us-east-1"
-  alias  = "ohio"
+  alias  = "virginia"
 }
+
+# provider "aws" {
+#   region = var.region
+# }
+
 
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.default.endpoint

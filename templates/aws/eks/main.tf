@@ -6,7 +6,7 @@ module "eks" {
   cluster_version = var.kube_version
 
   cluster_endpoint_public_access        = true
-  enable_cluster_creator_admin_permissions = true
+  enable_cluster_creator_admin_permissions = false
 
   cluster_addons = {
     coredns = {
@@ -46,14 +46,22 @@ module "eks" {
     vpc-cni    = {}
   }
 
-  # authentication_mode = "API_AND_CONFIG_MAP"
-  # access_entries = {
-  #   developer_access = {
-  #     kubernetes_groups = ["admin"]
-  #     principal_arn     = "arn:aws:iam::115525075501:user/dev"
-  #   }
-  # }
+  access_entries = {
+    sso_admin = {
+      kubernetes_groups = []
+      principal_arn     = var.sso_admin_role_arn
 
+      policy_associations = {
+        example = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            namespaces = []
+            type       = "cluster"
+          }
+        }
+      }
+    }
+  }
 
   tags = merge(var.tags, {
     "karpenter.sh/discovery" = var.environment

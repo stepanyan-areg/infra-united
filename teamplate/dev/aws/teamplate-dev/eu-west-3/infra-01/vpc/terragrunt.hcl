@@ -19,11 +19,11 @@ locals {
 
 inputs = {
   name                = "${local.my_account}-vpc"
-  cidr                = "10.5.0.0/16"
+  cidr                = "10.0.0.0/16"
   azs                 = ["${local.my_region}a", "${local.my_region}b", "${local.my_region}c"]
-  private_subnets     = ["10.5.0.0/18", "10.5.64.0/18", "10.5.128.0/18"]
+  private_subnets     = ["10.0.0.0/18", "10.0.64.0/18", "10.0.128.0/18"]
   private_subnet_tags = { "PrivateSubnet" = "true", "kubernetes.io/role/internal-elb" = 1 }
-  public_subnets      = ["10.5.192.0/20", "10.5.208.0/20", "10.5.224.0/20"]
+  public_subnets      = ["10.0.192.0/20", "10.0.208.0/20", "10.0.224.0/20"]
   public_subnet_tags  = { "PublicSubnet" = "true", "kubernetes.io/role/elb" = 1 }
 
   enable_nat_gateway      = true
@@ -39,13 +39,13 @@ inputs = {
   )
   private_subnet_tags = merge(
     { "kubernetes.io/role/elb-internal" = "1" },
-    { format("kubernetes.io/cluster/%s", local.my_env) = "shared" },
+    { format("kubernetes.io/cluster/eks-%s", local.my_env) = "shared" },
     { "karpenter.sh/discovery" = local.my_env },
     { "kubernetes.io/role/internal-elb" = "1" }
   )
 
   public_subnet_tags = merge(
-    { format("kubernetes.io/cluster/%s", local.my_env) = "shared" },
+    { format("kubernetes.io/cluster/eks-%s", local.my_env) = "shared" },
     { "kubernetes.io/role/elb" = "1" }
   )
 

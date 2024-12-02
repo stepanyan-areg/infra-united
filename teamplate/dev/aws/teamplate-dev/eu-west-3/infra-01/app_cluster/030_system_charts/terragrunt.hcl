@@ -118,15 +118,16 @@ inputs = {
   ingress_nginx_node_selector_value = "infra"
 
   # Additional values to override or add
-  ingress_nginx_extra_values = {
-    controller = {
-      replicaCount = 2
-      service = {
-        annotations = {
-        }
-      }
-    }
-  }
+  # ingress_nginx_extra_values = {
+  #   controller = {
+  #     replicaCount = 2
+  #     service = {
+  #       annotations = {
+  #         "service.beta.kubernetes.io/aws-load-balancer-type" = "nlb"
+  #       }
+  #     }
+  #   }
+  # }
 
 
   #Cert-Manager

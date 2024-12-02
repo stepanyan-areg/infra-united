@@ -28,3 +28,11 @@ variable "private_subnet_ids" {
   description = "List of private subnets"
   type        = list(string)
 }
+
+variable "cluster_endpoint" {
+  type        = string
+}
+
+variable "region" {
+  type = string
+}

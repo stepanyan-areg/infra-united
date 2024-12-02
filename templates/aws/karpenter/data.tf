@@ -1,6 +1,6 @@
 
 data "aws_ecrpublic_authorization_token" "token" {
-  provider = aws.ohio
+  provider = aws.virginia
 }
 
 data "aws_eks_cluster" "default" {

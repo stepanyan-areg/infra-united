@@ -27,7 +27,7 @@ locals {
   my_env               = include.root.locals.my_env_conf.locals.my_env
   my_stack             = include.root.locals.my_stack_conf.locals.my_stack
   cluster_name         = "eks-${local.my_env}"
-  # sso_admin_iam_role_arn = include.root.locals.my_account_conf.locals.sso_admin_iam_role_arn
+  sso_admin_iam_role_arn = include.root.locals.my_account_conf.locals.sso_admin_iam_role_arn
 }
 
 inputs = {
@@ -36,5 +36,5 @@ inputs = {
   subnets                  = dependency.vpc.outputs.private_subnets
   cluster_name             = local.cluster_name
   kube_version             = "1.31"
-  # sso_admin_role_arn       = local.sso_admin_iam_role_arn
+  sso_admin_role_arn       = local.sso_admin_iam_role_arn
 }

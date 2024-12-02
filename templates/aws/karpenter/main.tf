@@ -31,7 +31,7 @@ resource "helm_release" "karpenter" {
     <<-EOT
     settings:
       clusterName: ${var.cluster_name}
-      clusterEndpoint: ${data.aws_eks_cluster.default.endpoint}
+      clusterEndpoint: ${var.cluster_endpoint}
       interruptionQueue: ${module.karpenter.queue_name}
     serviceAccount:
       annotations:
@@ -170,6 +170,69 @@ resource "kubectl_manifest" "karpenter_node_pool_apps" {
     kubectl_manifest.karpenter_node_class_apps
   ]
 }
+
+# General NodePool
+resource "kubectl_manifest" "karpenter_node_pool_general" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.sh/v1beta1
+    kind: NodePool
+    metadata:
+      name: general
+    spec:
+      template:
+        spec:
+          nodeClassRef:
+            name: general
+          requirements:
+            - key: "karpenter.k8s.aws/instance-category"
+              operator: In
+              values: ["c", "m", "r", "t"]
+            - key: "karpenter.k8s.aws/instance-cpu"
+              operator: In
+              values: ["4", "8", "16", "32"]
+            - key: "kubernetes.io/arch"
+              operator: In
+              values: ["amd64"]
+            - key: "karpenter.sh/capacity-type"
+              operator: In
+              values: ["spot"]
+      limits:
+        cpu: 1000
+      disruption:
+        consolidationPolicy: WhenEmpty
+        consolidateAfter: 30s
+  YAML
+
+  depends_on = [
+    kubectl_manifest.karpenter_node_class_general
+  ]
+}
+
+# General NodeClass
+resource "kubectl_manifest" "karpenter_node_class_general" {
+  yaml_body = <<-YAML
+    apiVersion: karpenter.k8s.aws/v1beta1
+    kind: EC2NodeClass
+    metadata:
+      name: general
+    spec:
+      amiFamily: AL2
+      role: ${module.karpenter.node_iam_role_name}
+      subnetSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${var.environment}
+      securityGroupSelectorTerms:
+        - tags:
+            karpenter.sh/discovery: ${var.environment}
+      tags:
+        karpenter.sh/discovery: ${var.environment}
+  YAML
+
+  depends_on = [
+    helm_release.karpenter
+  ]
+}
+
 
 # Data NodeClass
 resource "kubectl_manifest" "karpenter_node_class_data" {
