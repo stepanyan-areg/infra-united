@@ -1,4 +1,0 @@
-redis:
-  resourcesPreset: small
-persistence:
-  size: 8Gi
